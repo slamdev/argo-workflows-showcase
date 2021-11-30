@@ -30,7 +30,7 @@ env:
   - name: S3_ENDPOINT
     value: http://minio.minio:9000
   - name: HADOOP_CLIENT_OPTS
-    value: --add-opens java.base/java.net=ALL-UNNAMED
+    value: --add-opens java.base/java.net=ALL-UNNAMED -Dhive.root.logger=console
 schematool:
   enabled: true
 importJars:
