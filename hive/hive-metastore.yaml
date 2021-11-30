@@ -1,0 +1,78 @@
+resources:
+  requests:
+    cpu: 10m
+    memory: 128Mi
+env:
+  - name: PG_HOST
+    value: hive-metastore-postgres
+  - name: PG_DB
+    value: hivemetastore
+  - name: PG_USER
+    valueFrom:
+      secretKeyRef:
+        name: hive-metastore-admin.hive-metastore-postgres.credentials.postgresql.acid.zalan.do
+        key: username
+  - name: PG_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: hive-metastore-admin.hive-metastore-postgres.credentials.postgresql.acid.zalan.do
+        key: password
+  - name: S3_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: minio-credentials
+        key: access-key
+  - name: S3_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: minio-credentials
+        key: secret-key
+  - name: S3_ENDPOINT
+    value: http://minio.minio:9000
+  - name: HADOOP_CLIENT_OPTS
+    value: --add-opens java.base/java.net=ALL-UNNAMED
+schematool:
+  enabled: true
+importJars:
+  enabled: true
+  coords:
+    - org.apache.hadoop:hadoop-aws:2.10.1
+hiveSiteXml: |
+  <configuration>
+      <property>
+          <name>javax.jdo.option.ConnectionURL</name>
+          <value>jdbc:postgresql://${env:PG_HOST}:5432/${env:PG_DB}?sslmode=require</value>
+      </property>
+      <property>
+          <name>javax.jdo.option.ConnectionDriverName</name>
+          <value>org.postgresql.Driver</value>
+      </property>
+      <property>
+          <name>javax.jdo.option.ConnectionUserName</name>
+          <value>${env:PG_USER}</value>
+      </property>
+      <property>
+          <name>javax.jdo.option.ConnectionPassword</name>
+          <value>${env:PG_PASSWORD}</value>
+      </property>
+      <property>
+          <name>fs.s3a.access.key</name>
+          <value>${env:S3_ACCESS_KEY}</value>
+      </property>
+      <property>
+          <name>fs.s3a.secret.key</name>
+          <value>${env:S3_SECRET_KEY}</value>
+      </property>
+      <property>
+          <name>fs.s3a.connection.ssl.enabled</name>
+          <value>false</value>
+      </property>
+      <property>
+          <name>fs.s3a.path.style.access</name>
+          <value>true</value>
+      </property>
+      <property>
+          <name>fs.s3a.endpoint</name>
+          <value>${env:S3_ENDPOINT}</value>
+      </property>
+  </configuration>

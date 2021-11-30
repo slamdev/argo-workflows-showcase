@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: s3-copier
+spec:
+  templates:
+    - name: s3-copier
+      inputs:
+        parameters:
+          - name: src-bucket
+          - name: src-key
+          - name: src-endpoint
+          - name: src-credentials-secret
+            default: "unset"
+          - name: dest-bucket
+          - name: dest-key
+          - name: dest-endpoint
+          - name: dest-credentials-secret
+            default: "unset"
+      script:
+        image: minio/mc:RELEASE.2021-11-16T20-37-36Z
+        command: [ bash ]
+        source: |
+          mc alias set src {{inputs.parameters.src-endpoint}} "${SRC_AWS_ACCESS_KEY}" "${SRC_AWS_SECRET_KEY}"
+          mc alias set dest {{inputs.parameters.dest-endpoint}} "${DEST_AWS_ACCESS_KEY}" "${DEST_AWS_SECRET_KEY}"
+          if [[ {{inputs.parameters.src-key}} == */ ]]; then
+            mc cp --recursive src/{{inputs.parameters.src-bucket}}/{{inputs.parameters.src-key}} dest/{{inputs.parameters.dest-bucket}}/{{inputs.parameters.dest-key}}
+          else
+            mc cp src/{{inputs.parameters.src-bucket}}/{{inputs.parameters.src-key}} dest/{{inputs.parameters.dest-bucket}}/{{inputs.parameters.dest-key}}
+          fi
+        env:
+          - name: SRC_AWS_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: access-key
+                name: "{{inputs.parameters.src-credentials-secret}}"
+                optional: true
+          - name: SRC_AWS_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                key: secret-key
+                name: "{{inputs.parameters.src-credentials-secret}}"
+                optional: true
+          - name: DEST_AWS_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: access-key
+                name: "{{inputs.parameters.dest-credentials-secret}}"
+                optional: true
+          - name: DEST_AWS_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                key: secret-key
+                name: "{{inputs.parameters.dest-credentials-secret}}"
+                optional: true

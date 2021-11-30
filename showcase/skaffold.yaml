@@ -1,0 +1,23 @@
+apiVersion: skaffold/v2beta21
+kind: Config
+metadata:
+  name: showcase
+deploy:
+  helm:
+    releases:
+      - name: rides-trino
+        remoteChart: trino
+        repo: https://valeriano-manassero.github.io/helm-charts
+        version: 1.7.0
+        namespace: showcase
+        createNamespace: true
+        upgradeOnChange: true
+        valuesFiles:
+          - trino.yaml
+  kubectl:
+    defaultNamespace: showcase
+    manifests:
+      - postgresql.yaml
+      - rbac.yaml
+      - workflow.yaml
+      - ../minio/minio-credentials.yaml

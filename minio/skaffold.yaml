@@ -1,0 +1,20 @@
+apiVersion: skaffold/v2beta21
+kind: Config
+metadata:
+  name: minio
+deploy:
+  helm:
+    releases:
+      - name: minio
+        remoteChart: minio
+        repo: https://charts.bitnami.com/bitnami
+        version: 9.2.1
+        createNamespace: true
+        namespace: minio
+        upgradeOnChange: true
+        valuesFiles:
+          - values.yaml
+  kubectl:
+    defaultNamespace: minio
+    manifests:
+      - minio-credentials.yaml

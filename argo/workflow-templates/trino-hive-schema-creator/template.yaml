@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: trino-hive-schema-creator
+spec:
+  templates:
+    - name: trino-hive-schema-creator
+      inputs:
+        parameters:
+          - name: server
+          - name: bucket
+          - name: key
+      steps:
+        - - name: create-trino-hive-schema
+            templateRef:
+              name: trino-querier
+              template: trino-querier
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: server
+                  value: "{{inputs.parameters.server}}"
+                - name: query
+                  value: |
+                    CREATE SCHEMA IF NOT EXISTS hive.{{inputs.parameters.key}} WITH (location = 's3a://{{inputs.parameters.bucket}}/{{inputs.parameters.key}}/')

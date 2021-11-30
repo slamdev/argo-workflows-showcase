@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: trino-querier
+spec:
+  templates:
+    - name: trino-querier
+      inputs:
+        parameters:
+          - name: query
+          - name: server
+      container:
+        image: trivadis/trino-cli:353
+        command: [trino]
+        args:
+          - "--server={{inputs.parameters.server}}"
+          - "--execute={{inputs.parameters.query}}"

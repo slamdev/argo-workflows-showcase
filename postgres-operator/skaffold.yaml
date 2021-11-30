@@ -1,0 +1,16 @@
+apiVersion: skaffold/v2beta21
+kind: Config
+metadata:
+  name: postgres-operator
+deploy:
+  helm:
+    releases:
+      - name: postgres-operator
+        remoteChart: postgres-operator
+        repo: https://opensource.zalando.com/postgres-operator/charts/postgres-operator/
+        version: 1.7.0
+        createNamespace: true
+        namespace: postgres-operator
+        upgradeOnChange: true
+        valuesFiles:
+          - values.yaml

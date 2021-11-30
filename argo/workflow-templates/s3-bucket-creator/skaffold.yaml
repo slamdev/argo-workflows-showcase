@@ -1,0 +1,9 @@
+apiVersion: skaffold/v2beta21
+kind: Config
+metadata:
+  name: s3-bucket-creator
+deploy:
+  kubectl:
+    defaultNamespace: argo
+    manifests:
+      - template.yaml

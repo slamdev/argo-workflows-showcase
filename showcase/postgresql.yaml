@@ -1,0 +1,27 @@
+apiVersion: acid.zalan.do/v1
+kind: postgresql
+metadata:
+  labels:
+    app.kubernetes.io/name: rides-postgres
+  name: rides-postgres
+spec:
+  databases:
+    rides: rides-admin
+  enableLogicalBackup: false
+  numberOfInstances: 1
+  postgresql:
+    version: "13"
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 10m
+      memory: 16Mi
+  teamId: rides
+  users:
+    rides-admin:
+      - superuser
+      - createdb
+  volume:
+    size: 100Mi

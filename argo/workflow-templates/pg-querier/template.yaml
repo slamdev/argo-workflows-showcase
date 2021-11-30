@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: pg-querier
+spec:
+  templates:
+    - name: pg-querier
+      inputs:
+        parameters:
+          - name: query
+          - name: host
+          - name: db
+          - name: credentials-secret
+      container:
+        image: postgres:13.5-alpine3.14
+        command: [psql]
+        args:
+          - "--host={{inputs.parameters.host}}"
+          - "--dbname={{inputs.parameters.db}}"
+          - "--command={{inputs.parameters.query}}"
+        env:
+          - name: PGUSER
+            valueFrom:
+              secretKeyRef:
+                key: username
+                name: "{{inputs.parameters.credentials-secret}}"
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: password
+                name: "{{inputs.parameters.credentials-secret}}"

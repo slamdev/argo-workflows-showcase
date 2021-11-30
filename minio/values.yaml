@@ -1,0 +1,11 @@
+mode: standalone
+auth:
+  existingSecret: minio-credentials
+  forcePassword: true
+disableWebUI: true
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+persistence:
+  enabled: false

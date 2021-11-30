@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: pg-csv-loader
+spec:
+  templates:
+    - name: pg-csv-loader
+      inputs:
+        parameters:
+          - name: host
+          - name: db
+          - name: table
+          - name: pg-credentials-secret
+          - name: bucket
+          - name: key
+          - name: endpoint
+          - name: s3-credentials-secret
+      script:
+        image: postgres:13.5-alpine3.14
+        command: [bash]
+        source: |
+          apk add minio-client --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing
+          mcli alias set s3 "{{inputs.parameters.endpoint}}" "${AWS_ACCESS_KEY}" "${AWS_SECRET_KEY}"
+          mcli cat "s3/{{inputs.parameters.bucket}}/{{inputs.parameters.key}}" | psql \
+           --host={{inputs.parameters.host}} \
+           --dbname={{inputs.parameters.db}} \
+           --single-transaction \
+           --command="COPY {{inputs.parameters.table}} from STDIN WITH(FORMAT CSV, DELIMITER ',', HEADER TRUE)"
+        env:
+          - name: PGUSER
+            valueFrom:
+              secretKeyRef:
+                key: username
+                name: "{{inputs.parameters.pg-credentials-secret}}"
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: password
+                name: "{{inputs.parameters.pg-credentials-secret}}"
+          - name: AWS_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: access-key
+                name: "{{inputs.parameters.s3-credentials-secret}}"
+          - name: AWS_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                key: secret-key
+                name: "{{inputs.parameters.s3-credentials-secret}}"

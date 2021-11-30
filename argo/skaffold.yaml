@@ -1,0 +1,16 @@
+apiVersion: skaffold/v2beta21
+kind: Config
+metadata:
+  name: argo
+deploy:
+  helm:
+    releases:
+      - name: argo-workflows
+        remoteChart: argo-workflows
+        repo: https://argoproj.github.io/argo-helm
+        version: 0.9.2
+        createNamespace: true
+        namespace: argo
+        upgradeOnChange: true
+        valuesFiles:
+          - values.yaml

@@ -1,0 +1,51 @@
+env:
+  - name: PG_USER
+    valueFrom:
+      secretKeyRef:
+        name: rides-admin.rides-postgres.credentials.postgresql.acid.zalan.do
+        key: username
+  - name: PG_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: rides-admin.rides-postgres.credentials.postgresql.acid.zalan.do
+        key: password
+  - name: S3_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: minio-credentials
+        key: access-key
+  - name: S3_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: minio-credentials
+        key: secret-key
+server:
+  workers: 1
+  config:
+    query:
+      maxMemory: "128MB"
+      maxMemoryPerNode: "64MB"
+      maxTotalMemory: "256MB"
+      maxTotalMemoryPerNode: "64MB"
+    prestoCompatibleHeader: false
+  jvm:
+    maxHeapSize: "256M"
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+connectors:
+  db.properties: |-
+    connector.name=postgresql
+    connection-url=jdbc:postgresql://rides-postgres:5432/rides
+    connection-user=${ENV:PG_USER}
+    connection-password=${ENV:PG_PASSWORD}
+  hive.properties: |-
+    connector.name=hive-hadoop2
+    hive.metastore.uri=thrift://hive-metastore.hive:9083
+    hive.allow-drop-table=true
+    hive.s3.path-style-access=true
+    hive.s3.endpoint=http://minio.minio:9000
+    hive.s3.aws-access-key=${ENV:S3_ACCESS_KEY}
+    hive.s3.aws-secret-key=${ENV:S3_SECRET_KEY}
+    hive.s3.ssl.enabled=false

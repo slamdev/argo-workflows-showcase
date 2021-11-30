@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: s3-bucket-creator
+spec:
+  templates:
+    - name: s3-bucket-creator
+      inputs:
+        parameters:
+          - name: bucket
+          - name: endpoint
+          - name: s3-credentials-secret
+      script:
+        image: minio/mc:RELEASE.2021-11-16T20-37-36Z
+        command: [ bash ]
+        source: |
+          mc alias set s3 "{{inputs.parameters.endpoint}}" "${AWS_ACCESS_KEY}" "${AWS_SECRET_KEY}"
+          mc mb -p s3/{{inputs.parameters.bucket}}
+        env:
+          - name: AWS_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: access-key
+                name: "{{inputs.parameters.s3-credentials-secret}}"
+          - name: AWS_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                key: secret-key
+                name: "{{inputs.parameters.s3-credentials-secret}}"

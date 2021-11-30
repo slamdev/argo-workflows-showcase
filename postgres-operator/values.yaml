@@ -1,0 +1,12 @@
+configKubernetes:
+  enable_pod_disruption_budget: false
+  enable_pod_antiaffinity: false
+  inherited_labels:
+    - app.kubernetes.io/name
+resources:
+  requests:
+    cpu: 10m
+    memory: 16Mi
+  limits:
+    cpu: 500m
+    memory: 500Mi

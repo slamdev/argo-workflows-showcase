@@ -1,0 +1,68 @@
+name: Test
+
+on:
+  - pull_request
+  - push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Cache images
+        uses: actions/cache@v2
+        with:
+          key: images
+          path: .github/kind/images
+
+      - name: Load docker images
+        run: |
+          find .github/kind/images -name *.tar -exec docker load -i {} \;
+
+      - name: Setup Kind
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          name: aw-showcase
+          config: .github/kind/cluster.yaml
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v1
+
+      - name: Setup Skaffold
+        uses: volesen/setup-skaffold@v1.1
+
+      - name: Load cluster apps images
+        run: |
+          for i in $(docker images --format '{{.Repository}}:{{.Tag}}') ; do
+            kind load docker-image --name=aw-showcase "${i}"
+          done
+
+      - name: Deploy apps
+        run: |
+          make apply
+
+      - name: Verify workflow
+        run: |
+          RETRIES=0
+          until [ $RETRIES -eq 10 ]; do
+            kubectl get pods --all-namespaces
+            sleep 10
+          done
+
+      - name: Export images
+        run: |
+          IMAGES=$(docker exec aw-showcase-control-plane crictl images -o json | jq -r '.[] | .[] | .repoTags | .[]')
+          IMAGES="${IMAGES} kindest/node:v1.21.1"
+          for image in ${IMAGES}; do
+            file_name=".github/kind/images/$(echo "${image}" | sed "s/\///g").tar"
+            if [ -f "${file_name}" ]; then
+              echo "found a saved ${image} image file: ${file_name}"
+              continue
+            fi
+            echo "saving ${image} to ${file_name}"
+            docker pull "${image}"
+            docker save "${image}" -o "${file_name}"
+          done

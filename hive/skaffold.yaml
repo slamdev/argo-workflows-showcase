@@ -1,0 +1,21 @@
+apiVersion: skaffold/v2beta21
+kind: Config
+metadata:
+  name: hive
+deploy:
+  helm:
+    releases:
+      - name: hive-metastore
+        createNamespace: true
+        remoteChart: hive-metastore
+        repo: https://slamdev.github.io/helm-charts
+        version: 0.0.3
+        namespace: hive
+        upgradeOnChange: true
+        valuesFiles:
+          - hive-metastore.yaml
+  kubectl:
+    defaultNamespace: hive
+    manifests:
+      - postgresql.yaml
+      - ../minio/minio-credentials.yaml

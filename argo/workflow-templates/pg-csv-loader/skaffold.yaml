@@ -1,0 +1,9 @@
+apiVersion: skaffold/v2beta21
+kind: Config
+metadata:
+  name: pg-csv-loader
+deploy:
+  kubectl:
+    defaultNamespace: argo
+    manifests:
+      - template.yaml

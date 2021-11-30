@@ -1,0 +1,204 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: rides-workflow
+  annotations:
+    workflows.argoproj.io/description: |
+      Worflow imports data files from AWS S3 to internal Minio storage and makes them queriable via Trino.
+spec:
+  serviceAccountName: rides-workflow
+  entrypoint: workflow
+  templates:
+    - name: workflow
+      dag:
+        tasks:
+
+          - name: create-buckets
+            templateRef:
+              name: s3-bucket-creator
+              template: s3-bucket-creator
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: bucket
+                  value: "{{item}}"
+                - name: endpoint
+                  value: http://minio.minio:9000
+                - name: s3-credentials-secret
+                  value: minio-credentials
+            withItems:
+              - rides
+              - warehouse
+
+          - name: import-external-files
+            templateRef:
+              name: s3-copier
+              template: s3-copier
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: src-bucket
+                  value: beat-bigdata-assignment
+                - name: src-key
+                  value: "{{item}}"
+                - name: src-endpoint
+                  value: https://s3.amazonaws.com
+                - name: dest-bucket
+                  value: rides
+                - name: dest-key
+                  value: "{{item}}"
+                - name: dest-endpoint
+                  value: http://minio.minio:9000
+                - name: dest-credentials-secret
+                  value: minio-credentials
+            withItems:
+              - data-long.csv
+              - rides-avro/
+              - rides-parquet/
+            depends: "create-buckets"
+
+          - name: create-rides-db-table
+            templateRef:
+              name: pg-querier
+              template: pg-querier
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: host
+                  value: rides-postgres
+                - name: db
+                  value: rides
+                - name: credentials-secret
+                  value: rides-admin.rides-postgres.credentials.postgresql.acid.zalan.do
+                - name: query
+                  value: |
+                    DROP TABLE IF EXISTS rides;
+                    CREATE TABLE rides
+                    (
+                        ride_id      VARCHAR(32) PRIMARY KEY,
+                        driver_id    INTEGER     NOT NULL,
+                        passenger_id INTEGER     NOT NULL,
+                        started_at   REAL        NOT NULL
+                    );
+
+          - name: load-rides-data-to-db
+            templateRef:
+              name: pg-csv-loader
+              template: pg-csv-loader
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: host
+                  value: rides-postgres
+                - name: db
+                  value: rides
+                - name: table
+                  value: rides
+                - name: pg-credentials-secret
+                  value: rides-admin.rides-postgres.credentials.postgresql.acid.zalan.do
+                - name: bucket
+                  value: rides
+                - name: key
+                  value: data-long.csv
+                - name: endpoint
+                  value: http://minio.minio:9000
+                - name: s3-credentials-secret
+                  value: minio-credentials
+            depends: "import-external-files && create-rides-db-table"
+
+          - name: create-hive-schema
+            templateRef:
+              name: trino-hive-schema-creator
+              template: trino-hive-schema-creator
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: server
+                  value: rides-trino:8080
+                - name: bucket
+                  value: warehouse
+                - name: key
+                  value: public
+                - name: endpoint
+                  value: http://minio.minio:9000
+                - name: s3-credentials-secret
+                  value: minio-credentials
+            depends: "import-external-files"
+
+          - name: transfer-rides-to-hive
+            templateRef:
+              name: trino-querier
+              template: trino-querier
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: server
+                  value: rides-trino:8080
+                - name: query
+                  value: |
+                    DROP TABLE IF EXISTS hive.public.rides;
+                    CREATE TABLE hive.public.rides AS SELECT * FROM db.public.rides;
+            depends: "create-hive-schema && load-rides-data-to-db"
+
+          - name: connect-avro-rides
+            templateRef:
+              name: trino-querier
+              template: trino-querier
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: server
+                  value: rides-trino:8080
+                - name: query
+                  value: |
+                    DROP TABLE IF EXISTS hive.public.rides_avro;
+                    CREATE TABLE hive.public.rides_avro (id bigint) WITH (
+                        format = 'AVRO',
+                        avro_schema_url = 's3a://rides/rides-avro/data-schema.avsc',
+                        external_location = 's3a://rides/rides-avro/data/'
+                    );
+            depends: "create-hive-schema"
+
+          - name: connect-parquet-rides
+            templateRef:
+              name: trino-querier
+              template: trino-querier
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: server
+                  value: rides-trino:8080
+                - name: query
+                  value: |
+                    DROP TABLE IF EXISTS hive.public.rides_parquet;
+                    CREATE TABLE hive.public.rides_parquet (ride_id VARCHAR(32), driver_id INTEGER, passenger_id INTEGER, started_at DOUBLE) WITH (
+                        format = 'PARQUET',
+                        external_location = 's3a://rides/rides-parquet/'
+                    );
+            depends: "create-hive-schema"
+
+          - name: list-rides
+            templateRef:
+              name: trino-querier
+              template: trino-querier
+              clusterScope: true
+            arguments:
+              parameters:
+                - name: server
+                  value: rides-trino:8080
+                - name: query
+                  value: |
+                    SELECT * FROM hive.public.{{item}} LIMIT 10
+            withItems:
+              - rides
+              - rides_avro
+              - rides_parquet
+            depends: "transfer-rides-to-hive && create-hive-schema && connect-parquet-rides"
+
+      # TODO it's an ugly way to ensure all cluster resources used in the workflow are ready
+      # experiment with resource.action.get step to replace it
+      retryStrategy:
+        limit: "5"
+        backoff:
+          duration: "5"
+          factor: "2"

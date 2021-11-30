@@ -1,0 +1,22 @@
+workflow:
+  serviceAccount:
+    create: true
+controller:
+  workflowNamespaces: []
+  containerRuntimeExecutor: pns
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+executor:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+server:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+  extraArgs:
+    - --auth-mode=server
