@@ -68,7 +68,11 @@ jobs:
               exit 0
             fi
             RETRIES=$((RETRIES - 1))
-            echo "workflow is in ${PHASE}; rechecking in 10s; ${RETRIES} retries left"
+            echo "workflow is in ${PHASE} phase; rechecking in 10s; ${RETRIES} retries left"
+
+            kubectl -nhive logs -lapp.kubernetes.io/name=hive-metastore || true
+            kubectl -nhive describe pod -lapp.kubernetes.io/name=hive-metastore || true
+
             sleep 10
           done
           kubectl get pods --all-namespaces
