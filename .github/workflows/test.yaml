@@ -66,8 +66,9 @@ jobs:
           command: |
             [ "$(kubectl get workflow -nshowcase rides-workflow -ojsonpath='{.status.phase}')" == "Succeeded1" ] || exit 1
           on_retry_command: |
-            kubectl -nhive get pods -lapp.kubernetes.io/name=hive-metastore
+            kubectl -nhive get pods
             kubectl -nhive logs -cschematool --tail=-1 -lapp.kubernetes.io/name=hive-metastore || true
+            kubectl -nhive logs --tail=-1 hive-metastore-postgres-0 || true
 
       - name: Export images
         if: env.DISABLE_IMAGE_CACHE == 'false'
