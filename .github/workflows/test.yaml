@@ -59,26 +59,15 @@ jobs:
           make apply
 
       - name: Verify workflow
-        run: |
-          echo "Verification usuall takes around 5m due to all the cluster components initialization"
-          RETRIES=30
-          while [ ${RETRIES} -gt 0 ]; do
-            PHASE=$(kubectl get workflow -nshowcase rides-workflow -ojsonpath='{.status.phase}')
-            if [ "${PHASE}" == "Succeeded" ]; then
-              kubectl get workflow -nshowcase
-              exit 0
-            fi
-            RETRIES=$((RETRIES - 1))
-            echo "workflow is in ${PHASE} phase; rechecking in 10s; ${RETRIES} retries left"
-
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 5
+          max_attempts: 30
+          command: |
+            [ "$(kubectl get workflow -nshowcase rides-workflow -ojsonpath='{.status.phase}')" == "Succeeded1" ] || exit 1
+          on_retry_command: |
             kubectl -nhive get pods -lapp.kubernetes.io/name=hive-metastore
-            kubectl -nhive logs -chive-metastore --tail=-1 -lapp.kubernetes.io/name=hive-metastore || true
-            # kubectl -nhive describe pod -lapp.kubernetes.io/name=hive-metastore || true
-
-            sleep 10
-          done
-          kubectl get pods --all-namespaces
-          exit 1
+            kubectl -nhive logs -cschematool --tail=-1 -lapp.kubernetes.io/name=hive-metastore --previous || true
 
       - name: Export images
         if: env.DISABLE_IMAGE_CACHE == 'false'
