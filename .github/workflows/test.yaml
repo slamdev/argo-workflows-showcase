@@ -7,7 +7,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      DISABLE_IMAGE_CACHE: "true"
+      DISABLE_IMAGE_CACHE: "false"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
