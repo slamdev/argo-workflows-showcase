@@ -7,12 +7,12 @@ env:
     value: hive-metastore-postgres
   - name: PG_DB
     value: hivemetastore
-  - name: PG_USER
+  - name: PGUSER
     valueFrom:
       secretKeyRef:
         name: hive-metastore-admin.hive-metastore-postgres.credentials.postgresql.acid.zalan.do
         key: username
-  - name: PG_PASSWORD
+  - name: PGPASSWORD
     valueFrom:
       secretKeyRef:
         name: hive-metastore-admin.hive-metastore-postgres.credentials.postgresql.acid.zalan.do
@@ -37,6 +37,13 @@ importJars:
   enabled: true
   coords:
     - org.apache.hadoop:hadoop-aws:2.10.1
+initContainers:
+  - name: wait-for-pg
+    image: postgres:13.5-alpine3.14
+    command: [ bash ]
+    args:
+      - -c
+      - while true; do psql --host=${PG_HOST} --dbname=${PG_DB} --command='SELECT 1' && exit 0; sleep 2; done
 hiveSiteXml: |
   <configuration>
       <property>
@@ -49,11 +56,11 @@ hiveSiteXml: |
       </property>
       <property>
           <name>javax.jdo.option.ConnectionUserName</name>
-          <value>${env:PG_USER}</value>
+          <value>${env:PGUSER}</value>
       </property>
       <property>
           <name>javax.jdo.option.ConnectionPassword</name>
-          <value>${env:PG_PASSWORD}</value>
+          <value>${env:PGPASSWORD}</value>
       </property>
       <property>
           <name>fs.s3a.access.key</name>
