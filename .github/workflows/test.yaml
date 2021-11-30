@@ -16,7 +16,7 @@ jobs:
         uses: actions/cache@v2
         if: env.DISABLE_IMAGE_CACHE == 'false'
         with:
-          key: images
+          key: docker-images
           path: .github/kind/images
 
       - name: Ensure cache dir exists
