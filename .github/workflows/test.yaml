@@ -58,7 +58,8 @@ jobs:
           RETRIES=0
           until [ $RETRIES -eq 10 ]; do
             kubectl get pods --all-namespaces
-            $(( RETRIES++ )) && sleep 10
+            RETRIES=$((RETRIES + 1))
+            sleep 10
           done
 
       - name: Export images
