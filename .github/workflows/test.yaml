@@ -3,25 +3,29 @@ name: Test
 on:
   - pull_request
   - push
-
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DISABLE_IMAGE_CACHE: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
       - name: Cache images
         uses: actions/cache@v2
+        if: env.DISABLE_IMAGE_CACHE == 'false'
         with:
           key: images
           path: .github/kind/images
 
       - name: Ensure cache dir exists
+        if: env.DISABLE_IMAGE_CACHE == 'false'
         run: |
           mkdir -p .github/kind/images
 
       - name: Load docker images
+        if: env.DISABLE_IMAGE_CACHE == 'false'
         run: |
           find .github/kind/images -name *.tar -exec docker load -i {} \;
 
@@ -43,6 +47,7 @@ jobs:
           version: v1.35.0
 
       - name: Load cluster apps images
+        if: env.DISABLE_IMAGE_CACHE == 'false'
         # TODO remove filtering out of hardcoded external images
         run: |
           for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -v 'node:' | grep -v 'buildpack-deps:' | grep -v 'ubuntu:' | grep -v 'debian:' | grep -v 'alpine:') ; do
@@ -55,15 +60,22 @@ jobs:
 
       - name: Verify workflow
         run: |
-          RETRIES=0
-          until [ $RETRIES -eq 10 ]; do
-            kubectl get pods --all-namespaces
-            kubect logs -nhive -lapp.kubernetes.io/name=hive-metastore
-            RETRIES=$((RETRIES + 1))
+          RETRIES=30
+          while [ ${RETRIES} -gt 0 ]; do
+            PHASE=$(kubectl get workflow -nshowcase rides-workflow -ojsonpath='{.status.phase}')
+            if [ "${PHASE}" == "Succeeded" ]; then
+              kubectl get workflow -nshowcase
+              exit 0
+            fi
+            RETRIES=$((RETRIES - 1))
+            echo "workflow is in ${PHASE}; rechecking in 10s; ${RETRIES} retries left"
             sleep 10
           done
+          kubectl get pods --all-namespaces
+          exit 1
 
       - name: Export images
+        if: env.DISABLE_IMAGE_CACHE == 'false'
         run: |
           IMAGES=$(docker exec aw-showcase-control-plane crictl images -o json | jq -r '.[] | .[] | .repoTags | .[]')
           IMAGES="${IMAGES} kindest/node:v1.21.1"
