@@ -69,8 +69,8 @@ jobs:
             fi
             RETRIES=$((RETRIES - 1))
             echo "::notice::workflow is in ${PHASE} phase; rechecking in 10s; ${RETRIES} retries left"
-            echo "::notice::list of pending pods:"
-            kubectl get pods --field-selector='status.phase!=Running' --all-namespaces | grep -v 'Completed' | grep -v 'Error'
+            echo "::notice::list of showcase pods:"
+            kubectl get pods -nshowcase
             sleep 10
           done
           kubectl get pods --all-namespaces
