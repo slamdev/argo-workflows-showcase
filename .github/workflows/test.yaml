@@ -18,6 +18,10 @@ jobs:
           key: images
           path: .github/kind/images
 
+      - name: Ensure cache dir exists
+        run: |
+          mkdir -p .github/kind/images
+
       - name: Load docker images
         run: |
           find .github/kind/images -name *.tar -exec docker load -i {} \;
