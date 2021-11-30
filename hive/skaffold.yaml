@@ -9,7 +9,7 @@ deploy:
         createNamespace: true
         remoteChart: hive-metastore
         repo: https://slamdev.github.io/helm-charts
-        version: 0.0.3
+        version: 0.0.4
         namespace: hive
         upgradeOnChange: true
         valuesFiles:
