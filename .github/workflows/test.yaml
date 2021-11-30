@@ -71,7 +71,8 @@ jobs:
             RETRIES=$((RETRIES - 1))
             echo "workflow is in ${PHASE} phase; rechecking in 10s; ${RETRIES} retries left"
 
-            kubectl -nhive logs -lapp.kubernetes.io/name=hive-metastore --previous || true
+            kubectl -nhive get pods -lapp.kubernetes.io/name=hive-metastore
+            kubectl -nhive logs -chive-metastore --tail=-1 -lapp.kubernetes.io/name=hive-metastore || true
             # kubectl -nhive describe pod -lapp.kubernetes.io/name=hive-metastore || true
 
             sleep 10
