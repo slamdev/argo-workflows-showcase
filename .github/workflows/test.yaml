@@ -8,6 +8,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: list github images
+        run: |
+          docker images --format '{{.Repository}}:{{.Tag}}'
 
       - name: Checkout
         uses: actions/checkout@v2
@@ -44,8 +47,9 @@ jobs:
           version: v1.35.0
 
       - name: Load cluster apps images
+        # TODO remove filtering out of hardcoded external images
         run: |
-          for i in $(docker images --format '{{.Repository}}:{{.Tag}}') ; do
+          for i in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -v 'node:' | grep -v 'buildpack-deps:') ; do
             kind load docker-image --name=aw-showcase "${i}"
           done
 
