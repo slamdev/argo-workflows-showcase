@@ -198,8 +198,8 @@ spec:
       # TODO it's an ugly way to ensure all cluster resources used in the workflow are ready
       # experiment with resource.action.get step to replace it
       retryStrategy:
-        limit: "10"
+        limit: "50"
         backoff:
-          duration: "1m"
+          duration: "30s"
           factor: "1"
-          maxDuration: "1m"
+          maxDuration: "30s"
