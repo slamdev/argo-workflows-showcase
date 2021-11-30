@@ -193,7 +193,7 @@ spec:
               - rides
               - rides_avro
               - rides_parquet
-            depends: "transfer-rides-to-hive && create-hive-schema && connect-parquet-rides"
+            depends: "transfer-rides-to-hive && connect-avro-rides && connect-parquet-rides"
 
       # TODO it's an ugly way to ensure all cluster resources used in the workflow are ready
       # experiment with resource.action.get step to replace it
