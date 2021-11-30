@@ -7,7 +7,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      DISABLE_IMAGE_CACHE: "false"
+      DISABLE_IMAGE_CACHE: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -91,4 +91,3 @@ jobs:
             docker pull "${image}"
             docker save "${image}" -o "${file_name}"
           done
-
