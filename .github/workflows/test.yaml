@@ -61,14 +61,12 @@ jobs:
       - name: Verify workflow
         uses: nick-invision/retry@v2
         with:
-          timeout_minutes: 5
-          max_attempts: 30
+          timeout_minutes: 999
+          max_attempts: 50
           command: |
             [ "$(kubectl get workflow -nshowcase rides-workflow -ojsonpath='{.status.phase}')" == "Succeeded1" ] || exit 1
           on_retry_command: |
-            kubectl -nhive get pods
-            kubectl -nhive logs -cwait-for-pg --tail=-1 -lapp.kubernetes.io/name=hive-metastore || true
-            kubectl -nhive logs -cschematool --tail=-1 -lapp.kubernetes.io/name=hive-metastore || true
+            kubectl --all-namespaces get pods
 
       - name: Export images
         if: env.DISABLE_IMAGE_CACHE == 'false'
