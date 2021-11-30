@@ -59,14 +59,21 @@ jobs:
           make apply
 
       - name: Verify workflow
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 999
-          max_attempts: 50
-          command: |
-            [ "$(kubectl get workflow -nshowcase rides-workflow -ojsonpath='{.status.phase}')" == "Succeeded1" ] || exit 1
-          on_retry_command: |
-            kubectl --all-namespaces get pods
+        run: |
+          RETRIES=50
+          while [ ${RETRIES} -gt 0 ]; do
+            PHASE=$(kubectl get workflow -nshowcase rides-workflow -ojsonpath='{.status.phase}')
+            if [ "${PHASE}" == "Succeeded" ]; then
+              kubectl get workflow -nshowcase
+              exit 0
+            fi
+            RETRIES=$((RETRIES - 1))
+            echo "::notice::workflow is in ${PHASE} phase; rechecking in 10s; ${RETRIES} retries left"
+            kubectl get pods --all-namespaces
+            sleep 10
+          done
+          kubectl get pods --all-namespaces
+          exit 1
 
       - name: Export images
         if: env.DISABLE_IMAGE_CACHE == 'false'
