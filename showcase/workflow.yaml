@@ -38,7 +38,7 @@ spec:
             arguments:
               parameters:
                 - name: src-bucket
-                  value: beat-bigdata-assignment
+                  value: rides
                 - name: src-key
                   value: "{{item}}"
                 - name: src-endpoint
